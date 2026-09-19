@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="RakshaRide — free smartphone crash detection and golden-hour emergency response for two-wheeler riders. SIH 2026 prototype.">
+  <title>RakshaRide — Smartphone Crash Detection &amp; Golden-Hour Response</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- =====================================================================
+     LANDING — choose a role
+     ===================================================================== -->
+<section id="landing">
+  <div class="logo" aria-hidden="true">🛡️</div>
+  <h1>RakshaRide</h1>
+  <span class="badge">SIH 2026 · T6-P4 · SMART VEHICLES</span>
+  <p class="sub">
+    Free smartphone crash detection and golden-hour emergency response for India's 20-crore two-wheeler riders.
+    Apple detects crashes for ₹80,000 phones. We do it for every phone — and then we manage the rescue.
+  </p>
+
+  <div class="feature-strip" aria-label="Key capabilities">
+    <span class="pill">🧠 3-gate crash classifier</span>
+    <span class="pill">📡 Zero-tap SOS &amp; live location</span>
+    <span class="pill">🚑 108 dispatch &amp; trauma pre-alert</span>
+    <span class="pill">🌸 Sakhi silent personal-safety mode</span>
+  </div>
+
+  <div class="role-cards">
+    <button class="role-card" onclick="enterRider()">
+      <div class="ic" aria-hidden="true">🏍️</div>
+      <b>Rider App</b>
+      <span>Runs on the rider's phone. Real accelerometer + gyroscope + GPS pipeline. Open on a phone for live sensors, or use the built-in signature simulator on a laptop.</span>
+      <span class="cta">Open rider app →</span>
+    </button>
+    <button class="role-card" onclick="enterCommand()">
+      <div class="ic" aria-hidden="true">🚑</div>
+      <b>108 Command Center</b>
+      <span>Emergency control-room view: severity triage, ambulance dispatch, trauma-hospital pre-alert, golden-hour timers, and an accident hotspot map.</span>
+      <span class="cta">Open command center →</span>
+    </button>
+  </div>
+
+  <p class="note">
+    <b>Demo tip:</b> open the Rider App on a phone and the Command Center on a laptop. A crash alert generated on the phone produces an
+    <b>alert code</b> you can ingest into the command center — a real cross-device handoff, no server needed.
+  </p>
+  <footer>Built for Smart India Hackathon 2026 · Problem statement T6-P4</footer>
+</section>
+
+<!-- =====================================================================
+     RIDER APP — phone frame
+     ===================================================================== -->
+<main id="rider" class="hide">
+  <header class="r-head">
+    <div class="mark" aria-hidden="true">🛡️</div>
+    <b>RakshaRide</b>
+    <span class="role">Rider Guardian</span>
+    <span class="st" id="rideState">IDLE</span>
+  </header>
+
+  <div class="r-body">
+
+    <!-- Ride status -->
+    <section class="card">
+      <div class="ride-stat">
+        <div class="speedo"><b id="spd">0</b><span>KM/H · GPS</span></div>
+        <div class="ride-meta">
+          Sensor: <b id="sensorState">not connected</b><br>
+          Ride time: <b id="rideTime">00:00</b> · Dist: <b id="rideDist">0.0 km</b><br>
+          GPS: <b id="gpsState">—</b>
+        </div>
+      </div>
+      <button class="big-btn start mt-12" id="rideBtn">▶ Start Ride Protection</button>
+      <div class="row2 mt-8">
+        <button class="big-btn safe-btn" id="safeBtn">✔ Reached Safely — notify family</button>
+      </div>
+      <label class="check-row">
+        <input type="checkbox" id="autoArm" checked>
+        <span><b>Auto ride detection</b> — arms by itself at riding speed, disarms when you stop. You never have to remember.
+          <span class="hint">(production: Android Activity Recognition, battery-cheap)</span></span>
+      </label>
+      <p class="perm-note" id="permNote">On a phone, tap Start to grant motion + location permission — detection then runs on <b>real sensors</b>. On a laptop, use the signature simulator below.</p>
+    </section>
+
+    <!-- Detection pipeline -->
+    <section class="card">
+      <h3>⚡ Live Detection Pipeline <span class="r" id="pipeMode">demo thresholds</span></h3>
+      <div class="stages">
+        <div class="stage" id="st-ctx"><div class="ic">🏍️</div><div class="nm">CONTEXT</div><div class="vl" id="v-ctx">not riding</div></div>
+        <div class="stage" id="st-imp"><div class="ic">💥</div><div class="nm">IMPACT</div><div class="vl" id="v-imp">—</div></div>
+        <div class="stage" id="st-cls"><div class="ic">🧠</div><div class="nm">CLASSIFY</div><div class="vl" id="v-cls">—</div></div>
+        <div class="stage" id="st-still"><div class="ic">⏱️</div><div class="nm">STILLNESS</div><div class="vl" id="v-still">—</div></div>
+      </div>
+      <div class="g-meter mt-10"><canvas id="gCanvas"></canvas></div>
+      <div class="g-read">
+        <span>accel <b id="gNow">9.8</b> m/s²</span>
+        <span>rot <b id="rotNow">0</b> °/s</span>
+        <span>peak <b id="gPeak">—</b></span>
+      </div>
+      <div class="verdict mt-10" id="verdict">Pipeline idle. Start a ride (or fire a test signature) to see the three-gate decision engine work.</div>
+    </section>
+
+    <!-- Signature simulator -->
+    <section class="card">
+      <h3>🧪 Signature Simulator <span class="r">same pipeline, synthetic input</span></h3>
+      <div class="sim-grid">
+        <button class="sim-btn" data-sim="drop">📱 Phone Drop<small>free-fall → single spike → pickup</small></button>
+        <button class="sim-btn" data-sim="pothole">🕳️ Pothole Hit<small>spike but ride continues</small></button>
+        <button class="sim-btn" data-sim="coaster">🎢 Rollercoaster<small>Apple's famous false alarm</small></button>
+        <button class="sim-btn danger" data-sim="crash">💥 Real Crash<small>full golden-hour flow</small></button>
+      </div>
+    </section>
+
+    <!-- Guardian circle -->
+    <section class="card">
+      <h3>👨‍👩‍👧 Guardian Circle</h3>
+      <div class="guard-row">
+        <input id="gName" placeholder="Rider name" value="Arjun K">
+        <input id="gBlood" class="short" placeholder="Blood" value="B+">
+      </div>
+      <div class="guard-row"><input id="gPhone" placeholder="Guardian phone (gets SOS SMS)" value="+91 98XXXXXX01"></div>
+
+      <div class="eyebrow field-label">Auto-notify (zero-tap) — configure one channel to test real automatic delivery</div>
+      <div class="guard-row">
+        <input id="tgToken" placeholder="Telegram bot token (from @BotFather)">
+        <input id="tgChat" class="mid" placeholder="chat id">
+      </div>
+      <div class="guard-row">
+        <input id="waPhone" placeholder="CallMeBot WhatsApp no. (+91…)">
+        <input id="waKey" class="mid" placeholder="apikey">
+      </div>
+      <div class="guard-row"><input id="relayUrl" placeholder="108 live-relay URL (Firebase RTDB — auto-sends crash to command center)"></div>
+      <button class="mini-btn go full-btn" id="testNotify">📨 Send TEST message to guardian now</button>
+      <div class="verdict note-sm" id="notifyStat" style="display:none"></div>
+      <p class="perm-note">
+        On crash, the app fires these <b>automatically — no taps</b>. Setup (2 min): Telegram → message @BotFather → /newbot → paste token;
+        guardian messages your bot once, get chat id from <code>api.telegram.org/bot&lt;token&gt;/getUpdates</code>.
+        Or WhatsApp via callmebot.com (guardian sends the one-time allow message, gets an apikey).
+      </p>
+      <div class="chips mt-8">
+        <span class="chip ok">✔ Guardian: Amma</span>
+        <span class="chip ok">✔ Escalation: Appa → 112</span>
+        <span class="chip">Auto "reached safely" ON</span>
+        <span class="chip">Offline SMS fallback ON</span>
+      </div>
+    </section>
+
+    <!-- Sakhi mode -->
+    <section class="card sakhi">
+      <h3>🌸 Sakhi Mode <span class="r">same engine · second trigger: personal safety</span></h3>
+      <button class="hold-btn" id="holdSOS"><i id="holdFill"></i><span>HOLD 3 s — SILENT SOS<small>no siren · no countdown · guardians + 112 + police + live location, instantly</small></span></button>
+      <div class="row2 mt-8">
+        <button class="big-btn safe-btn compact" id="tripBtn">🧭 Start Trip Watch</button>
+        <button class="big-btn safe-btn compact" id="fakeBtn">📞 Fake Call</button>
+      </div>
+      <div id="tripPanel" class="hide mt-8">
+        <div class="verdict" id="tripStat">🧭 <b>Trip Watch live</b> — guardians see this trip moving in real time. If the route deviates or stops unexpectedly, they're alerted <b>without her pressing anything</b>.</div>
+        <button class="mini-btn full mt-8" id="devBtn">⚠ Simulate route deviation / unexpected stop</button>
+      </div>
+      <div class="chips mt-8">
+        <span class="chip ok">✔ Silent SOS — screen stays normal, nothing alerts an attacker</span>
+        <span class="chip ok">✔ Deviation auto-alert — acts when she can't</span>
+        <span class="chip">Native app: power-button ×3, works from pocket</span>
+      </div>
+    </section>
+
+    <!-- False-alarm shields -->
+    <section class="card">
+      <h3>🛡️ False-Alarm Shields <span class="r">why we don't dial 108 from a rollercoaster</span></h3>
+      <div class="chips">
+        <span class="chip ok">✔ Riding-context gate (GPS speed profile)</span>
+        <span class="chip ok">✔ Free-fall + pickup = drop, rejected</span>
+        <span class="chip ok">✔ Ride-continues = pothole, rejected</span>
+        <span class="chip ok">✔ Repetitive smooth-G pattern = amusement ride</span>
+        <span class="chip ok">✔ Post-impact stillness required</span>
+        <span class="chip ok">✔ 15 s human cancel countdown</span>
+      </div>
+      <p class="perm-note"><span class="link" onclick="document.getElementById('howVeil').style.display='flex'">How the classifier works →</span></p>
+    </section>
+
+  </div>
+</main>
+
+<!-- Fake call overlay (Sakhi) -->
+<div id="fakeCall" class="hide" role="dialog" aria-label="Fake incoming call">
+  <div>
+    <div class="fc-state" id="fcState">incoming call…</div>
+    <div class="fc-name">Appa</div>
+    <div class="fc-sub">mobile · India</div>
+  </div>
+  <div id="fcTimer"></div>
+  <div class="fc-actions">
+    <button id="fcEnd" class="fc-btn end" aria-label="End call">📵</button>
+    <button id="fcAns" class="fc-btn ans" aria-label="Answer call">📞</button>
+  </div>
+</div>
+
+<!-- Countdown overlay -->
+<div id="countOverlay" class="hide" role="alertdialog" aria-label="Crash detected countdown">
+  <h2>⚠️ CRASH DETECTED</h2>
+  <div id="countNum">15</div>
+  <p>Severe impact + no movement detected.<br><b>SOS to 108 &amp; your guardians</b> fires when the timer ends.</p>
+  <button id="cancelBtn">I'M OKAY — CANCEL</button>
+  <p class="fine">Every cancel is logged as a labelled false-positive and retrains the model.</p>
+</div>
+
+<!-- SOS dispatched screen -->
+<div id="sosScreen" class="hide">
+  <div class="sos-band">
+    <h2>🆘 SOS DISPATCHED</h2>
+    <div class="sub2" id="sosTime">—</div>
+  </div>
+  <div class="kv" id="sosKv"></div>
+
+  <section class="card mt-10">
+    <h3>📟 Alert Code — ingest into 108 Command Center</h3>
+    <div class="code-box" id="alertCode">—</div>
+    <div class="row2 mt-10">
+      <button class="big-btn safe-btn compact" id="copyCode">Copy code</button>
+      <button class="big-btn safe-btn compact" id="smsBtn">📩 Open guardian SMS</button>
+    </div>
+  </section>
+
+  <section class="card mt-10">
+    <h3>📞 Guardian Escalation Chain <span class="r">nobody's message goes to waste</span></h3>
+    <div class="note-green">🚑 108 dispatch runs in PARALLEL — the rescue never waits for family to answer.</div>
+    <div id="escList"></div>
+  </section>
+
+  <section class="card mt-10">
+    <h3>What just happened</h3>
+    <div id="sosSteps"></div>
+  </section>
+
+  <button class="big-btn start mt-10" id="sosDone">← Back to rider app</button>
+</div>
+
+<!-- =====================================================================
+     108 COMMAND CENTER
+     ===================================================================== -->
+<main id="command" class="hide">
+  <header class="c-head">
+    <div class="mark" aria-hidden="true">🚑</div>
+    <div>
+      <h1>RakshaRide · 108 EMERGENCY COMMAND</h1>
+      <div class="sub">Coimbatore District — Golden-Hour Response Grid</div>
+    </div>
+    <span class="badge">SIH 2026 · T6-P4</span>
+    <span class="badge live">RESPONSE NET ONLINE</span>
+    <div class="spacer"></div>
+    <button class="ctl-btn primary" id="feedBtn">▶ Simulate incident feed</button>
+    <button class="ctl-btn" id="cHowBtn">ⓘ How it works</button>
+    <button class="ctl-btn" onclick="location.hash='';location.reload()" title="Back to home">⌂</button>
+  </header>
+
+  <div class="c-kpis">
+    <div class="tile"><div class="lbl">Active alerts</div><div class="val red" id="ck-act">0</div><div class="sub">in golden hour</div></div>
+    <div class="tile"><div class="lbl">Median detect→dispatch</div><div class="val" id="ck-dd">—</div><div class="sub">target &lt; 60 s</div></div>
+    <div class="tile"><div class="lbl">Ambulances free</div><div class="val" id="ck-amb">6/8</div><div class="sub">GVK-EMRI fleet</div></div>
+    <div class="tile"><div class="lbl">Hospitals pre-alerted</div><div class="val" id="ck-hosp">0</div><div class="sub">trauma teams ready</div></div>
+    <div class="tile"><div class="lbl">Families notified</div><div class="val green" id="ck-fam">0</div><div class="sub">live-tracking links</div></div>
+    <div class="tile"><div class="lbl">Lives in play</div><div class="val" id="ck-resolved">0</div><div class="sub">resolved today</div></div>
+  </div>
+
+  <div class="c-main">
+
+    <!-- Alert triage -->
+    <section class="panel">
+      <h2>🆘 Alert Triage <span class="count" id="alertCount">0</span></h2>
+      <div class="scroll" id="alertList">
+        <div class="empty">No active alerts.<br>Start the incident feed, or ingest a real alert code from a rider phone below.</div>
+      </div>
+      <div class="ingest">
+        <div class="eyebrow">📡 Live relay — alerts arrive automatically</div>
+        <input id="cRelay" placeholder="paste the same Firebase relay URL as the rider app">
+        <div class="stat" id="cRelayStat">relay idle — add URL for zero-touch ingestion</div>
+        <div class="eyebrow">Manual fallback — ingest alert code</div>
+        <textarea id="ingestBox" placeholder="paste RKSA-... code"></textarea>
+        <button class="ctl-btn full" id="ingestBtn">Ingest alert</button>
+      </div>
+    </section>
+
+    <!-- Map -->
+    <section class="panel map-wrap">
+      <canvas id="cmap"></canvas>
+      <div class="c-layers">
+        <div class="t">MAP LAYERS</div>
+        <label><input type="checkbox" id="cl-hot" checked> Accident hotspots</label>
+        <label><input type="checkbox" id="cl-amb" checked> Ambulances</label>
+        <label><input type="checkbox" id="cl-hosp" checked> Hospitals</label>
+        <label><input type="checkbox" id="cl-routes" checked> Dispatch routes</label>
+      </div>
+      <div class="c-legend">
+        <div class="t">LEGEND</div>
+        <div class="li"><span class="sw crit"></span>▲ Critical crash</div>
+        <div class="li"><span class="sw serious"></span>◆ Severe</div>
+        <div class="li"><span class="sw warn"></span>● Moderate</div>
+        <div class="li"><span class="sw amb"></span>🚑 Ambulance</div>
+        <div class="li"><span class="sw hosp"></span>H Trauma hospital</div>
+      </div>
+    </section>
+
+    <!-- Trauma network -->
+    <section class="panel">
+      <h2>🏥 Trauma Network <span class="count" id="hospCount">6</span></h2>
+      <div class="scroll" id="hospList"></div>
+    </section>
+
+  </div>
+
+  <div class="c-logbar">
+    <h2>Response event log</h2>
+    <div id="clog"></div>
+  </div>
+</main>
+
+<!-- =====================================================================
+     "How it works" modal (shared by both views)
+     ===================================================================== -->
+<div class="modal-veil" id="howVeil">
+  <div class="modal" role="dialog" aria-labelledby="howTitle">
+    <button class="x" onclick="document.getElementById('howVeil').style.display='none'" aria-label="Close">✕</button>
+    <h3 id="howTitle">🧠 How RakshaRide decides: crash vs everything else</h3>
+    <p>The classifier never judges an impact alone — it judges the <b>story around it</b>. Three gates must all agree before the countdown even starts.</p>
+
+    <h4>Gate 1 — Riding context</h4>
+    <p>Armed only when GPS shows sustained vehicle speed (&gt;15 km/h) with two-wheeler vibration texture. A phone dropped in your kitchen, or a rollercoaster (no road-matched GPS trajectory, park geofence, repetitive smooth high-G pattern) never arms the detector.</p>
+
+    <h4>Gate 2 — Impact signature</h4>
+    <div class="formula">features = [peakG, spikeCount, freefall_ms, rotationEnergy, ΔGPS_speed, duration]</div>
+    <table>
+      <tr><th>Event</th><th>Signature</th><th>Verdict</th></tr>
+      <tr><td>Phone drop</td><td>free-fall ~0g → ONE clean spike → low rotation → pickup motion in seconds</td><td>REJECT</td></tr>
+      <tr><td>Pothole</td><td>single vertical spike, GPS speed continues</td><td>REJECT</td></tr>
+      <tr><td>Rollercoaster</td><td>repetitive smooth G-waves, no road context, motion continues</td><td>REJECT</td></tr>
+      <tr><td>Crash</td><td>40→0 km/h deceleration + multiple chaotic spikes + 3-axis tumbling</td><td>ESCALATE</td></tr>
+    </table>
+
+    <h4>Gate 3 — Post-impact stillness</h4>
+    <p>The decisive evidence: after a real crash, GPS speed stays 0 and the phone shows no human motion. Only then the siren + 15 s cancel countdown fires — a conscious rider cancels with one tap (which becomes a labelled training sample); silence is confirmation.</p>
+
+    <h4>Severity model → response</h4>
+    <div class="formula">severity = 35·(pre-speed/60) + 30·(peakG/16g) + 20·rotationEnergy + 15·stillness → CRITICAL / SEVERE / MODERATE</div>
+    <p>Severity drives everything downstream: which ambulance, which trauma level hospital gets pre-alerted, and queue position in the 108 command center.</p>
+
+    <h4>Production mapping</h4>
+    <ul>
+      <li>Phone: background service (Android foreground service / iOS motion API), on-device TFLite classifier trained on team-collected labelled rides, drops, and crash-dummy tests.</li>
+      <li>Alerts: structured payload over data; <b>SMS fallback when no internet</b> (store-and-forward works where data fails on highways).</li>
+      <li>Command center: FastAPI + PostGIS, GVK-EMRI 108 integration, hospital HMIS pre-alert, family live-tracking links.</li>
+      <li>This prototype: the same pipeline in-browser — real DeviceMotion sensors on a phone, synthetic signatures on a laptop, identical decision code.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Scripts: classic (non-module) scripts so shared globals behave exactly as in the single-file prototype -->
+<script src="js/app.js"></script>
+<script src="js/rider.js"></script>
+<script src="js/command.js"></script>
+</body>
+</html>
