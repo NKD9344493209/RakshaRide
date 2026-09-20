@@ -141,4 +141,8 @@ Plain HTML/CSS/JS — classic (non-module) scripts, so the three files share one
 
 ## 📜 License
 
-MIT — see [LICENSE](LICENSE).
+© 2026 Naveen Kumar D. All rights reserved.
+
+This code is shared publicly for viewing and evaluation purposes only.
+No permission is granted to copy, modify, distribute, or use this code
+in any project — commercial or otherwise — without my written consent.
